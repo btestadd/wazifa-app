@@ -48,7 +48,6 @@ workflows:
         BUNDLE_ID: com.wazifa.jobs
         XCODE_PROJECT: ios/App/App.xcodeproj
         XCODE_SCHEME: App
-    app_store_connect: wazifa_asc
     scripts:
       - name: Install dependencies
         script: npm ci
@@ -66,7 +65,10 @@ workflows:
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
-    publishing:
-      app_store_connect:
-        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
-        submit_to_testflight: true
+    # Publishing to App Store Connect is added here once the ASC API key exists:
+    # save it in Codemagic as integration "wazifa_asc", then restore:
+    #   app_store_connect: wazifa_asc        (workflow level)
+    #   publishing:
+    #     app_store_connect:
+    #       api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+    #       submit_to_testflight: true
