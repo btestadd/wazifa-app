@@ -1,7 +1,8 @@
 # Codemagic CI — builds the Wazifa iOS app on a cloud Mac (no local Xcode needed).
 # Repo: https://github.com/btestadd/wazifa-app
-# Bundle ID: com.wazifa.jobs — Capacitor 6 (Swift Package Manager, no CocoaPods,
-# no .xcworkspace — always use --project ios/App/App.xcodeproj, never --workspace).
+# Bundle ID: com.wazifa.jobs — Capacitor 6 via CocoaPods in THIS project
+# (ios/App/Podfile installs Capacitor as a pod), so builds MUST use the
+# .xcworkspace (the .xcodeproj alone cannot see the Capacitor module).
 # The ios/ folder IS committed (it carries the fixed Info.plist + AppIcon), so the
 # workflows run `npx cap sync ios` and never `npx cap add ios` (that would wipe it).
 
@@ -18,6 +19,7 @@ workflows:
       vars:
         BUNDLE_ID: com.wazifa.jobs
         XCODE_PROJECT: ios/App/App.xcodeproj
+        XCODE_WORKSPACE: ios/App/App.xcworkspace
         XCODE_SCHEME: App
     scripts:
       - name: Install dependencies
@@ -26,7 +28,7 @@ workflows:
         script: npx cap sync ios
       - name: Build without code signing (compile check only)
         script: |
-          xcodebuild -project "$XCODE_PROJECT" \
+          xcodebuild -workspace "$XCODE_WORKSPACE" \
             -scheme "$XCODE_SCHEME" \
             -configuration Release \
             -destination 'generic/platform=iOS' \
@@ -47,6 +49,7 @@ workflows:
       vars:
         BUNDLE_ID: com.wazifa.jobs
         XCODE_PROJECT: ios/App/App.xcodeproj
+        XCODE_WORKSPACE: ios/App/App.xcworkspace
         XCODE_SCHEME: App
     scripts:
       - name: Install dependencies
@@ -60,7 +63,7 @@ workflows:
       - name: Build signed IPA
         script: |
           xcode-project build-ipa \
-            --project "$XCODE_PROJECT" \
+            --workspace "$XCODE_WORKSPACE" \
             --scheme "$XCODE_SCHEME"
     artifacts:
       - build/ios/ipa/*.ipa
