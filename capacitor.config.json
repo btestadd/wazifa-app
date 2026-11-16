@@ -1,0 +1,1 @@
+{"android": {"allowMixedContent": false}, "appId": "com.wazifa.jobs", "appName": "وضيفة", "ios": {"contentInset": "automatic"}, "plugins": {"SplashScreen": {"backgroundColor": "#2563eb", "launchShowDuration": 1500}}, "server": {"allowNavigation": ["https://wazifa-df074.web.app"], "cleartext": false, "url": "https://wazifa-df074.web.app"}, "webDir": "public"}
