@@ -1,0 +1,72 @@
+# Codemagic CI — builds the Wazifa iOS app on a cloud Mac (no local Xcode needed).
+# Repo: https://github.com/btestadd/wazifa-app
+# Bundle ID: com.wazifa.jobs — Capacitor 6 (Swift Package Manager, no CocoaPods,
+# no .xcworkspace — always use --project ios/App/App.xcodeproj, never --workspace).
+# The ios/ folder IS committed (it carries the fixed Info.plist + AppIcon), so the
+# workflows run `npx cap sync ios` and never `npx cap add ios` (that would wipe it).
+
+workflows:
+  # Runs with NO Apple credentials — only proves the project compiles on a Mac.
+  # Start here as soon as Codemagic is connected to the repo.
+  ios-unsigned:
+    name: iOS unsigned build check
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      xcode: latest
+      node: 20
+      vars:
+        BUNDLE_ID: com.wazifa.jobs
+        XCODE_PROJECT: ios/App/App.xcodeproj
+        XCODE_SCHEME: App
+    scripts:
+      - name: Install dependencies
+        script: npm ci
+      - name: Sync Capacitor iOS project
+        script: npx cap sync ios
+      - name: Build without code signing (compile check only)
+        script: |
+          xcodebuild -project "$XCODE_PROJECT" \
+            -scheme "$XCODE_SCHEME" \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            CODE_SIGNING_ALLOWED=NO build
+
+  # Signed .ipa + upload to App Store Connect. Needs, in Codemagic:
+  #  - an App Store Connect API key saved as integration "wazifa_asc"
+  #    (App Store Connect → Users and Access → Integrations → App Store Connect API,
+  #     Admin role; paste the .p8, Key ID and Issuer ID into Codemagic)
+  #  - the bundle ID com.wazifa.jobs registered in the Apple Developer account.
+  ios-appstore:
+    name: iOS App Store
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    environment:
+      xcode: latest
+      node: 20
+      vars:
+        BUNDLE_ID: com.wazifa.jobs
+        XCODE_PROJECT: ios/App/App.xcodeproj
+        XCODE_SCHEME: App
+    app_store_connect: wazifa_asc
+    scripts:
+      - name: Install dependencies
+        script: npm ci
+      - name: Sync Capacitor iOS project
+        script: npx cap sync ios
+      - name: Fetch signing files
+        script: app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
+      - name: Use signing profiles
+        script: xcode-project use-profiles --project "$XCODE_PROJECT"
+      - name: Build signed IPA
+        script: |
+          xcode-project build-ipa \
+            --project "$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        api_key: $APP_STORE_CONNECT_PRIVATE_KEY
+        submit_to_testflight: true
